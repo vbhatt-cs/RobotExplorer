@@ -46,7 +46,7 @@ float ki = 0;
 float kd = 0.2;
 
 double setDirection = 90;	//Reference direction
-int setDistance = 1000;		//Reference distance
+int setDistance = 100;		//Reference distance
 
 int curDistance = 0;
 bool runMotor = true;
@@ -148,7 +148,7 @@ void loop() {
 	if (DEBUG_SERIAL)
 	{
 		Serial.print(" yaw = "); Serial.println(curDirection);
-		Serial.print(" ref = "); Serial.println(setDirection);
+	    Serial.print(" ref = "); Serial.println(setDirection);
 		Serial.print(" output = "); Serial.println(output);
 		Serial.print(" distance = "); Serial.println(curDistance);
 	}
@@ -275,9 +275,18 @@ float getYaw()
 	fabo_9axis.readGyroXYZ(&gx, &gy, &gz);
 	fabo_9axis.readMagnetXYZ(&mx, &my, &mz);
 
-	mx = (mx - 10.285)*42.575;
-	my = (my - 59.015)*41.895;
-	mz = (mz + 26.44)*35.17;
+	mx = (mx - 10.285)/42.575;
+	my = (my - 59.015)/41.895;
+    my = my-0.62;
+	mz = (mz + 26.44)/35.17;
+
+    /////////
+    //Serial.print("mx: ");
+    //Serial.print(mx);
+    //Serial.print(" my: ");
+    //Serial.print(my);
+    //Serial.print(" mz: ");
+    //Serial.println(mz);
 
 	//    ax*=aRes;
 	//    ay*=aRes;

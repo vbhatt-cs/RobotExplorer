@@ -7,6 +7,9 @@ float eInt[3] = { 0.0f, 0.0f, 0.0f };       // vector to hold integral error for
     float deltat = 0.0f, sum = 0.0f;        // integration interval for both filter schemes
     uint32_t lastUpdate = 0, firstUpdate = 0; // used to calculate integration interval
 uint32_t Now = 0;        // used to calculate integration interval
+
+float magCalibration[3] = {1, 1, 1};
+float magBias[3] = {0,0,0};
     
     // these are the free parameters in the Mahony filter and fusion scheme, Kp for proportional feedback, Ki for integral
     const float Kp= 1.0f; 
@@ -16,6 +19,7 @@ void setup() {
   // put your setup code here, to run once:
     Serial.begin(9600);
     fabo_9axis.begin();
+    magCal();
 }
 
 void loop() {
@@ -41,7 +45,7 @@ float getYaw()
     float mRes = 10.*4912./32760.0;
     float gRes = 250.0/32768.0;
     float aRes = 2.0/32768.0;
-    float magCalibration[3] = {1.20, 1.21, 1.16};
+    
 
     fabo_9axis.readAccelXYZ(&ax, &ay, &az);
     fabo_9axis.readGyroXYZ(&gx,&gy,&gz);
@@ -59,9 +63,18 @@ float getYaw()
 //    my*=mRes*magCalibration[1];
 //    mz*=mRes*magCalibration[2];
 
-    mx=(mx-10.285)*42.575;
-    my=(my-59.015)*41.895;
-    mz=(mz+26.44)*35.17;
+    //Original
+//    mx=(mx-10.285)*42.575;
+//    my=(my-59.015)*41.895;
+//    mz=(mz+26.44)*35.17;
+
+//    mx=(mx-16.42)*45.28;
+//    my=(my-105.375)*30.875;
+//    mz=(mz+20.69)*20.855;
+
+    mx = (mx - magBias[0])/magCalibration[0];
+    my = (my - magBias[1])/magCalibration[1];
+    mz = (mz - magBias[2])/magCalibration[2];
 
 //    Serial.print("ax: ");
 //    Serial.print(ax);
@@ -77,12 +90,12 @@ float getYaw()
 //    Serial.print(" gz: ");
 //    Serial.println(gz);
 //    
-    Serial.print("mx: ");
-    Serial.print(mx);
-    Serial.print(" my: ");
-    Serial.print(my);
-    Serial.print(" mz: ");
-    Serial.println(mz);
+//    Serial.print("mx: ");
+//    Serial.print(mx);
+//    Serial.print(" my: ");
+//    Serial.print(my);
+//    Serial.print(" mz: ");
+//    Serial.println(mz);
 //
 //    Serial.print("q0 = "); Serial.print(q[0]);
 //    Serial.print(" qx = "); Serial.print(q[1]); 
@@ -189,5 +202,44 @@ void MahonyQuaternionUpdate(float ax, float ay, float az, float gx, float gy, fl
     q[2] = q3 * norm;
     q[3] = q4 * norm;
 
+}
+
+void magCal()
+{
+    float mx, my, mz;
+    float maxX, maxY, maxZ;
+    float minX, minY, minZ;
+
+    Serial.println("Calibrating");
+
+    for(int i=0; i<200;i++)
+    {
+        fabo_9axis.readMagnetXYZ(&mx, &my, &mz);
+        if(mx > maxX)
+            maxX = mx;
+        if(my > maxY)
+            maxY = my;
+        if(mz > maxZ)
+            maxZ = mz;
+        if(mx < minX)
+            minX = mx;
+        if(my < minY)
+            minY = my;
+        if(mz < minZ)
+            minZ = mz;
+
+        delay(200);
+    }
+
+    Serial.print("X"); Serial.print(maxX); Serial.print(" "); Serial.println(minX);
+    Serial.print("Y"); Serial.print(maxY); Serial.print(" "); Serial.println(minY);
+    Serial.print("Z"); Serial.print(maxZ); Serial.print(" "); Serial.println(minZ);
+    magBias[0] = (maxX + minX)/2;
+    magBias[1] = (maxY + minY)/2;
+    magBias[2] = (maxZ + minZ)/2;
+
+    magCalibration[0] = (maxX - minX)/2;
+    magCalibration[1] = (maxY - minY)/2;
+    magCalibration[2] = (maxZ - minZ)/2;
 }
 
