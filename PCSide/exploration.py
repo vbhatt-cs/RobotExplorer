@@ -2,7 +2,9 @@ import maparray
 
 
 def explore():
-    return
+    nextDis = 0
+    nextDir = 0
+    return nextDis, nextDir
 
 
 def finished():
