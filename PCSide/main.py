@@ -4,15 +4,15 @@ import mapping
 import exploration
 import display
 
-maparray.init()
-
 nextDis = 0
 nextDir = 0
 
+maparray.init()  # Initialize global variables
+
 while not exploration.finished():
-    yaw, enc, wall, reached = communication.getSensors()
-    mapping.updatePath(yaw, enc, wall, nextDis, nextDir)
+    yaw, enc, wall, reached = communication.getSensors()  # Get sensor data
+    mapping.updateMap(yaw, enc, wall, nextDis, nextDir)  # Update map
     if reached or wall:
-        nextDis, nextDir = exploration.explore()
-        communication.sendData(nextDis, nextDir)
+        nextDis, nextDir = exploration.explore()  # Continue exploration
+        communication.sendData(nextDis, nextDir)  # Send command to bot
     display.display()

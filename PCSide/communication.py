@@ -1,5 +1,9 @@
 def getSensors():
-    # Code to get sensor data from arduino here.
+    """ Get sensor data from arduino
+        yaw -> angle with bot x-axis (float)
+        enc -> encoder count (int)
+        wall -> whether a wall is detected in front (bool)
+        reached -> whether the distance given has been covered by the bot"""
     yaw = 0
     enc = 0
     wall = 0
@@ -8,6 +12,5 @@ def getSensors():
 
 
 def sendData(distance, direction):
-    # Code to send data to arduino here.
-    print()
+    """ Send the next distance and direction to arduino"""
     return
