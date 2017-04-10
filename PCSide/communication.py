@@ -3,7 +3,7 @@ from parse import *
 
 address = ('192.168.137.228', 4210)  # IP, port of arduino
 client_socket = socket(AF_INET, SOCK_DGRAM)  # Set up the socket for UDP
-client_socket.settimeout(10)  # Timeout = 1s
+client_socket.settimeout(1)  # Timeout = 1s
 
 
 def init():
