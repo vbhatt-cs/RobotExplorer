@@ -17,11 +17,9 @@ curY = 0
 
 def init():
     """ Initializes the value of global variables"""
-    global mapArray
-    global explorationStack
-    global curX
-    global curY
-    mapArray = np.ones((MAP_SIZE, MAP_SIZE))
+    global mapArray, explorationStack, curX, curY
+
+    mapArray = np.ones((MAP_SIZE, MAP_SIZE)) * 0.5
     explorationStack = []
-    curX = MAP_SIZE / 2
-    curY = MAP_SIZE / 2
+    curX = int(MAP_SIZE / 2)
+    curY = int(MAP_SIZE / 2)
