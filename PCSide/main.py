@@ -8,6 +8,7 @@ nextDis = 0
 nextDir = 0
 
 maparray.init()  # Initialize global variables
+communication.init()
 
 while not exploration.finished():
     yaw, enc, wall, reached = communication.getSensors()  # Get sensor data
