@@ -4,7 +4,7 @@ import maparray
 def init():
     """ Initializes the exploration stack and sets the initial position of the bot a open"""
 
-    maparray.maparray.mapArray[maparray.curX, maparray.curY] = 1
+    maparray.mapArray[maparray.curX, maparray.curY] = 1
     maparray.explorationStack = [(maparray.curX, maparray.curY)]
 
 
@@ -36,7 +36,7 @@ def explore():
 
 def finished():
     """ Returns whether everything that can be explored has been explored"""
-    return maparray.explorationStack
+    return not maparray.explorationStack
 
 
 def unexpNeighbor(px, py):
