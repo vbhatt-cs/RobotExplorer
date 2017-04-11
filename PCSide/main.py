@@ -17,4 +17,4 @@ while not exploration.finished():
     if reached or wall:
         nextDis, nextDir = exploration.explore()  # Continue exploration
         communication.sendData(nextDis, nextDir)  # Send command to bot
-    display.display()
+    display.display()  # Display map

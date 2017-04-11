@@ -5,6 +5,7 @@ angleDelta = 10
 def updateMap(yaw, enc, wall, nextDis, nextDir):
     """ Updates the map using the sensor data from arduino
         Kept as a separate function to add error correction if required later"""
+
     if nextDir - angleDelta <= yaw <= nextDir + angleDelta:
         if not wall and enc == nextDis:
             if nextDir == 0:

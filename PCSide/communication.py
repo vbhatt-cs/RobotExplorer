@@ -7,6 +7,8 @@ client_socket.settimeout(1)  # Timeout = 1s
 
 
 def init():
+    """ Initialize UDP connection """
+
     global address, client_socket
 
     address = ('192.168.137.228', 4210)  # IP, port of arduino
@@ -20,6 +22,7 @@ def getSensors():
         enc -> encoder count (int)
         wall -> whether a wall is detected in front (bool)
         reached -> whether the distance given has been covered by the bot"""
+
     yaw = 0
     enc = 0
     wall = False
@@ -42,6 +45,7 @@ def getSensors():
 
 def sendData(distance, direction):
     """ Send the next distance and direction to arduino"""
+
     data = "{} {}".format(distance, direction)
     client_socket.sendto(data.encode(), address)  # send command to arduino
 

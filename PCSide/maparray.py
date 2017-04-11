@@ -1,6 +1,7 @@
 import numpy as np
 
 MAP_SIZE = 5
+CELL_DIS = 20   # Encoder counts required to move one cell
 
 """ Map:
     0 (black) => Wall
@@ -17,6 +18,7 @@ curY = 0
 
 def init():
     """ Initializes the value of global variables"""
+
     global mapArray, explorationStack, curX, curY
 
     mapArray = np.ones((MAP_SIZE, MAP_SIZE)) * 0.5

@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 
 
 def display():
-    """ Displays the map (maparray.mapArray)"""
+    """ Displays the map"""
+
     plt.imshow(maparray.mapArray, vmin=0.0, vmax=1.0)
     plt.gray()
     plt.draw()
