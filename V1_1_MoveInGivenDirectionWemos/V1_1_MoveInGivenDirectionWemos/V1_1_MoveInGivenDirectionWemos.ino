@@ -1,7 +1,7 @@
 /*
- Name:		V1_1_MoveInGivenDirectionWemos.ino
- Created:	3/11/2017 11:35:00 AM
- Author:	Varun Bhatt
+Name:		V1_1_MoveInGivenDirectionWemos.ino
+Created:	3/11/2017 11:35:00 AM
+Author:	Varun Bhatt
 */
 
 #include <PID_v1.h>				//Arduino PID library
@@ -10,8 +10,7 @@
 #include <FaBo9Axis_MPU9250.h>
 //For web server
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h> 
-#include <ESP8266WebServer.h>
+#include <WiFiUdp.h>
 
 //Set to 1 if debugging in serial
 const bool DEBUG_SERIAL = 1;
@@ -26,6 +25,8 @@ const bool DEBUG_SERIAL = 1;
 #define RDIR2 D0
 
 #define ENCODER D3
+
+#define PROXIMITY D1
 
 // Left and Right steady state speed
 const int RIGHT_SS_SPEED = 300;
@@ -51,6 +52,7 @@ int setDistance = 100;		//Reference distance
 int curDistance = 0;
 bool runMotor = true;
 bool rotateMotor = true;
+bool wall = false;
 
 FaBo9Axis fabo_9axis;	// For MPU9250 readings
 float q[4] = { 1.0f, 0.0f, 0.0f, 0.0f };    // vector to hold quaternion
@@ -59,14 +61,18 @@ float deltat = 0.0f;						// integration interval for both filter schemes
 uint32_t lastUpdate = 0;	// used to calculate integration interval
 uint32_t Now = 0;							// used to calculate integration interval
 uint32_t startTime = 0;
+float magBias[3] = { 10.285, 84.989, -26.44 };
+float magScale[3] = { 42.575, 41.895, 35.17 };
 
 //Setup PID
 PID wheelControl(&curDirection, &output, &setDirection, kp, ki, kd, DIRECT);
 
 //SSID of access point
 const char *SSID = "WemosMotor";
-ESP8266WebServer server(80);	//Server
-String webpage;
+
+//UDP stuff
+WiFiUDP Udp;
+unsigned int localUdpPort = 4210;  // local port to listen on
 
 void setup() {
 	if (DEBUG_SERIAL)
@@ -83,12 +89,7 @@ void setup() {
 	pinMode(LDIR1, OUTPUT);
 	pinMode(LDIR2, OUTPUT);
 
-	//Webpage to be displayed
-	webpage = "<html><form method=\"get\">\n";
-	webpage += "Direction (angle): <input type=\"number\" name=\"direction\" value=0 min=-180 max=180 step=0.1><br>\n";
-	webpage += "Distance (encoder count): <input type=\"number\" name=\"distance\" value=0 min=0><br><br>\n";
-	webpage += "<input type=\"submit\" value=\"Submit\">\n";
-	webpage += "</form></html>";
+	pinMode(PROXIMITY, INPUT);
 
 	//Start the WiFi access point
 	if (DEBUG_SERIAL)
@@ -106,11 +107,10 @@ void setup() {
 		Serial.println(myIP);
 	}
 
-	server.on("/", handleRoot);
-	server.begin();
+	Udp.begin(localUdpPort);
 
 	if (DEBUG_SERIAL)
-		Serial.println("HTTP server started");
+		Serial.printf("Now listening at IP %s, UDP port %d\n", WiFi.localIP().toString().c_str(), localUdpPort);
 
 	//Stop the motor initially
 	digitalWrite(LDIR1, LOW);
@@ -131,7 +131,7 @@ void setup() {
 }
 
 void loop() {
-	server.handleClient();	//Handle web requests
+	handleUDP();	//Handle UDP messages
 
 	Now = micros();
 	deltat = ((Now - lastUpdate) / 1000000.0f); // set integration time by time elapsed since last filter update
@@ -141,6 +141,7 @@ void loop() {
 	curDirection = getYaw();
 
 	runMotor = curDistance < setDistance;
+	wall = digitalRead(PROXIMITY);
 
 	//Compute the PID output
 	wheelControl.Compute();
@@ -148,7 +149,7 @@ void loop() {
 	if (DEBUG_SERIAL)
 	{
 		Serial.print(" yaw = "); Serial.println(curDirection);
-	    Serial.print(" ref = "); Serial.println(setDirection);
+		Serial.print(" ref = "); Serial.println(setDirection);
 		Serial.print(" output = "); Serial.println(output);
 		Serial.print(" distance = "); Serial.println(curDistance);
 	}
@@ -166,7 +167,7 @@ void loop() {
 	leftSpeed = LEFT_SS_SPEED - output;
 	leftSpeed = constrain(leftSpeed, CONSTRAIN_LOW, CONSTRAIN_HIGH);
 
-	if (runMotor)	//Start the motor
+	if (runMotor && !wall)	//Start the motor
 	{
 		if (micros() - startTime < 8000000)
 		{
@@ -190,11 +191,6 @@ void loop() {
 				digitalWrite(LDIR1, HIGH);
 				digitalWrite(RDIR2, LOW);
 				digitalWrite(RDIR1, HIGH);
-
-				/*digitalWrite(RDIR1, LOW);
-				digitalWrite(RDIR2, HIGH);
-				digitalWrite(LDIR1, LOW);
-				digitalWrite(LDIR2, HIGH);*/
 				analogWrite(RPWM, RIGHT_SS_SPEED);
 				analogWrite(LPWM, LEFT_SS_SPEED);
 			}
@@ -209,22 +205,6 @@ void loop() {
 			analogWrite(RPWM, rightSpeed);
 			analogWrite(LPWM, leftSpeed);
 		}
-
-		/*else if (output < 20 && output > -20)
-		{
-			analogWrite(RPWM, rightSpeed);
-			analogWrite(LPWM, leftSpeed);
-		}
-		else if (output < 0)
-		{
-			analogWrite(RPWM, rightSpeed);
-			analogWrite(LPWM, 0);
-		}
-		else
-		{
-			analogWrite(RPWM, 0);
-			analogWrite(LPWM, leftSpeed);
-		}*/
 	}
 	else	//Stop the motor
 	{
@@ -239,26 +219,61 @@ void loop() {
 	delay(200);
 }
 
-//Webpages
-void handleRoot() {
-	setDirection = server.arg("direction").toFloat();
-	setDistance = server.arg("distance").toInt();
-
-	if (setDistance > 0)
-		curDistance = 0;
-
-	rotateMotor = true;
-
-	if (DEBUG_SERIAL)
+//Handle UDP request
+void handleUDP() {
+	int packetSize = Udp.parsePacket();
+	if (packetSize)
 	{
-		Serial.println("$$$$$$$$$$$$$$$$$$$");
-		Serial.print(setDirection);
-		Serial.print(" ");
-		Serial.println(setDistance);
-		Serial.println("$$$$$$$$$$$$$$$$$$$");
-	}
+		// receive incoming UDP packets
+		char incomingPacket[UDP_TX_PACKET_MAX_SIZE];
+		int len = Udp.read(incomingPacket, UDP_TX_PACKET_MAX_SIZE);
+		if (len > 0)
+		{
+			incomingPacket[len] = 0;
+		}
 
-	server.send(200, "text/html", webpage);
+		if (DEBUG_SERIAL)
+		{
+			Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
+			Serial.printf("UDP packet contents: %s\n", incomingPacket);
+		}
+
+		String req(incomingPacket);
+
+		// send back a reply, to the IP address and port we got the packet from
+		// Sensor data requested
+		if (req == "Sensors")
+		{
+			String reply = String(curDirection) + " " + curDistance + " " + wall + " " + runMotor;
+			Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+			Udp.write(reply.c_str());
+			Udp.endPacket();
+		}
+		//New movement command
+		else
+		{
+			String dir, dis;
+			dir = req.substring(0, req.indexOf(' '));
+			dis = req.substring(req.indexOf(' ') + 1);
+
+			setDirection = dir.toFloat();
+			setDistance = dis.toInt();
+
+			if (setDistance > 0)
+				curDistance = 0;
+
+			rotateMotor = true;
+
+			if (DEBUG_SERIAL)
+			{
+				Serial.println("$$$$$$$$$$$$$$$$$$$");
+				Serial.print(setDirection);
+				Serial.print(" ");
+				Serial.println(setDistance);
+				Serial.println("$$$$$$$$$$$$$$$$$$$");
+			}
+		}
+	}
 }
 
 float getYaw()
@@ -266,67 +281,47 @@ float getYaw()
 	float ax, ay, az;
 	float gx, gy, gz;
 	float mx, my, mz;
-	/*float mRes = 10.*4912. / 32760.0;
-	float gRes = 250.0 / 32768.0;
-	float aRes = 2.0 / 32768.0;
-	float magCalibration[3] = { 1.20, 1.21, 1.16 };*/
 
 	fabo_9axis.readAccelXYZ(&ax, &ay, &az);
 	fabo_9axis.readGyroXYZ(&gx, &gy, &gz);
 	fabo_9axis.readMagnetXYZ(&mx, &my, &mz);
 
-	mx = (mx - 10.285)/42.575;
-	my = (my - 59.015)/41.895;
-    my = my-0.62;
-	mz = (mz + 26.44)/35.17;
+	mx = (mx - magBias[0]) / magScale[0];
+	my = (my - magBias[1]) / magScale[1];
+	mz = (mz - magBias[2]) / magScale[2];
 
-    /////////
-    //Serial.print("mx: ");
-    //Serial.print(mx);
-    //Serial.print(" my: ");
-    //Serial.print(my);
-    //Serial.print(" mz: ");
-    //Serial.println(mz);
-
-	//    ax*=aRes;
-	//    ay*=aRes;
-	//    az*=aRes;
-	//
-	//    gx*=gRes;
-	//    gy*=gRes;
-	//    gz*=gRes;
-	//
-	//    mx*=mRes*magCalibration[0];
-	//    my*=mRes*magCalibration[1];
-	//    mz*=mRes*magCalibration[2];
+	/////////
+	//Serial.print("mx: ");
+	//Serial.print(mx);
+	//Serial.print(" my: ");
+	//Serial.print(my);
+	//Serial.print(" mz: ");
+	//Serial.println(mz);
 
 	/*if (DEBUG_SERIAL)
 	{
-		Serial.print("ax: ");
-		Serial.print(ax);
-		Serial.print(" ay: ");
-		Serial.print(ay);
-		Serial.print(" az: ");
-		Serial.println(az);
-
-		Serial.print("gx: ");
-		Serial.print(gx);
-		Serial.print(" gy: ");
-		Serial.print(gy);
-		Serial.print(" gz: ");
-		Serial.println(gz);
-
-		Serial.print("mx: ");
-		Serial.print(mx);
-		Serial.print(" my: ");
-		Serial.print(my);
-		Serial.print(" mz: ");
-		Serial.println(mz);
-
-		Serial.print("q0 = "); Serial.print(q[0]);
-		Serial.print(" qx = "); Serial.print(q[1]);
-		Serial.print(" qy = "); Serial.print(q[2]);
-		Serial.print(" qz = "); Serial.println(q[3]);
+	Serial.print("ax: ");
+	Serial.print(ax);
+	Serial.print(" ay: ");
+	Serial.print(ay);
+	Serial.print(" az: ");
+	Serial.println(az);
+	Serial.print("gx: ");
+	Serial.print(gx);
+	Serial.print(" gy: ");
+	Serial.print(gy);
+	Serial.print(" gz: ");
+	Serial.println(gz);
+	Serial.print("mx: ");
+	Serial.print(mx);
+	Serial.print(" my: ");
+	Serial.print(my);
+	Serial.print(" mz: ");
+	Serial.println(mz);
+	Serial.print("q0 = "); Serial.print(q[0]);
+	Serial.print(" qx = "); Serial.print(q[1]);
+	Serial.print(" qy = "); Serial.print(q[2]);
+	Serial.print(" qz = "); Serial.println(q[3]);
 	}*/
 
 	MahonyQuaternionUpdate(ax, ay, az, gx*PI / 180.0f, gy*PI / 180.0f, gz*PI / 180.0f, my, mx, mz);
