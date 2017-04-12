@@ -46,7 +46,7 @@ def getSensors():
 def sendData(distance, direction):
     """ Send the next distance and direction to arduino"""
 
-    data = "{} {}".format(distance, direction)
+    data = "{} {}".format(direction, distance)
     client_socket.sendto(data.encode(), address)  # send command to arduino
 
     return
