@@ -139,6 +139,8 @@ void loop() {
 
 	//Read MPU9250 and get compass heading
 	curDirection = getYaw();
+	if (curDirection < -170)
+		curDirection = abs(curDirection);
 
 	runMotor = curDistance < setDistance;
 
@@ -173,9 +175,9 @@ void loop() {
 			analogWrite(RPWM, 0);
 			analogWrite(LPWM, 0);
 		}
-		else if ((setDirection - curDirection > 10 || setDirection - curDirection < -10) && rotateMotor)
+		else if ((abs(setDirection - curDirection) > 10 && abs(setDirection - curDirection) < 350) && rotateMotor)
 		{
-			if (output > 0)
+			if (setDirection - curDirection > 0 && setDirection - curDirection < 180)
 			{
 				digitalWrite(RDIR1, LOW);
 				digitalWrite(RDIR2, HIGH);
