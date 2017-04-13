@@ -26,7 +26,7 @@ const bool DEBUG_SERIAL = 1;
 
 #define ENCODER D3
 
-#define PROXIMITY D1
+#define PROXIMITY A0
 
 // Left and Right steady state speed
 const int RIGHT_SS_SPEED = 300;
@@ -46,8 +46,8 @@ float kp = 1;
 float ki = 0;
 float kd = 0.2;
 
-double setDirection = 90;	//Reference direction
-int setDistance = 100;		//Reference distance
+double setDirection = 0;	//Reference direction
+int setDistance = 0;		//Reference distance
 
 int curDistance = 0;
 bool runMotor = true;
@@ -68,18 +68,22 @@ float magScale[3] = { 42.575, 41.895, 35.17 };
 PID wheelControl(&curDirection, &output, &setDirection, kp, ki, kd, DIRECT);
 
 //SSID of access point
-const char *SSID = "WemosMotor";
+const char *SSID = "vg";
+const char *password = "qwer321!";
 
 //UDP stuff
 WiFiUDP Udp;
+//IPAddress ip(192, 168, 137, 69);
+//IPAddress gateway(192, 168, 137, 1);
+//IPAddress subnet(255, 255, 255, 0);
 unsigned int localUdpPort = 4210;  // local port to listen on
 
 void setup() {
 	if (DEBUG_SERIAL)
 		Serial.begin(9600);
 
-	pinMode(ENCODER, INPUT);
-	attachInterrupt(digitalPinToInterrupt(ENCODER), encISR, FALLING);
+    pinMode(ENCODER, INPUT);
+    attachInterrupt(digitalPinToInterrupt(ENCODER), encISR, FALLING);
 
 	pinMode(RPWM, OUTPUT);
 	pinMode(RDIR1, OUTPUT);
@@ -98,20 +102,21 @@ void setup() {
 		Serial.print("Configuring access point...");
 	}
 
-	WiFi.softAP(SSID);
-	IPAddress myIP = WiFi.softAPIP();
+	//WiFi.softAP(SSID);
+	WiFi.begin(SSID, password);
+	//WiFi.config(ip, gateway, subnet);
 
-	if (DEBUG_SERIAL)
-	{
-		Serial.print("AP IP address: ");
-		Serial.println(myIP);
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(500);
+		if (DEBUG_SERIAL)
+			Serial.print(".");
 	}
 
 	Udp.begin(localUdpPort);
 
 	if (DEBUG_SERIAL)
 		Serial.printf("Now listening at IP %s, UDP port %d\n", WiFi.localIP().toString().c_str(), localUdpPort);
-
+    
 	//Stop the motor initially
 	digitalWrite(LDIR1, LOW);
 	digitalWrite(LDIR2, LOW);
@@ -139,9 +144,15 @@ void loop() {
 
 	//Read MPU9250 and get compass heading
 	curDirection = getYaw();
+	if (curDirection < -170)
+		curDirection = abs(curDirection);
 
 	runMotor = curDistance < setDistance;
-	wall = digitalRead(PROXIMITY);
+
+	if (rotateMotor)
+		wall = false;
+	else
+		wall = analogRead(PROXIMITY) < 512;
 
 	//Compute the PID output
 	wheelControl.Compute();
@@ -174,9 +185,9 @@ void loop() {
 			analogWrite(RPWM, 0);
 			analogWrite(LPWM, 0);
 		}
-		else if ((setDirection - curDirection > 10 || setDirection - curDirection < -10) && rotateMotor)
+		else if ((abs(setDirection - curDirection) > 10 && abs(setDirection - curDirection) < 350) && rotateMotor)
 		{
-			if (output > 0)
+			if (setDirection - curDirection > 0 && setDirection - curDirection < 180)
 			{
 				digitalWrite(RDIR1, LOW);
 				digitalWrite(RDIR2, HIGH);
@@ -244,7 +255,7 @@ void handleUDP() {
 		// Sensor data requested
 		if (req == "Sensors")
 		{
-			String reply = String(curDirection) + " " + curDistance + " " + wall + " " + runMotor;
+			String reply = String(curDirection) + " " + curDistance + " " + wall + " " + (!runMotor);
 			Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
 			Udp.write(reply.c_str());
 			Udp.endPacket();
@@ -335,8 +346,8 @@ float getYaw()
 void MahonyQuaternionUpdate(float ax, float ay, float az, float gx, float gy, float gz, float mx, float my, float mz)
 {
 	// these are the free parameters in the Mahony filter and fusion scheme, Kp for proportional feedback, Ki for integral
-	const float Kp = 1.0f;
-	const float Ki = 0.0f;
+	const float Kp = 5.0f;
+	const float Ki = 0.1f;
 
 	float q1 = q[0], q2 = q[1], q3 = q[2], q4 = q[3];   // short name local variable for readability
 	float norm;

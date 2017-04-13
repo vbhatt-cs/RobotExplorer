@@ -8,18 +8,18 @@ float eInt[3] = { 0.0f, 0.0f, 0.0f };       // vector to hold integral error for
     uint32_t lastUpdate = 0, firstUpdate = 0; // used to calculate integration interval
 uint32_t Now = 0;        // used to calculate integration interval
 
-float magCalibration[3] = {1, 1, 1};
-float magBias[3] = {0,0,0};
+float magCalibration[3] = {58.54, 63.3, 24.96};
+float magBias[3] = {22.1,63.3,-8.2};
     
     // these are the free parameters in the Mahony filter and fusion scheme, Kp for proportional feedback, Ki for integral
-    const float Kp= 1.0f; 
-    const float Ki = 0.0f;
+    const float Kp= 5.0f; 
+    const float Ki = 0.1f;
 
 void setup() {
   // put your setup code here, to run once:
     Serial.begin(9600);
     fabo_9axis.begin();
-    magCal();
+    //magCal();
 }
 
 void loop() {
