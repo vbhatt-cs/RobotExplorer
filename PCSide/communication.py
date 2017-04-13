@@ -1,7 +1,7 @@
 from socket import *
 from parse import *
 
-address = ('192.168.137.242', 4210)  # IP, port of arduino
+address = ('192.168.137.149', 4210)  # IP, port of arduino
 client_socket = socket(AF_INET, SOCK_DGRAM)  # Set up the socket for UDP
 
 

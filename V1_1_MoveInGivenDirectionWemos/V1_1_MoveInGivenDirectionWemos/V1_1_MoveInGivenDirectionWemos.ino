@@ -236,8 +236,8 @@ void handleUDP() {
 	if (packetSize)
 	{
 		// receive incoming UDP packets
-		char incomingPacket[UDP_TX_PACKET_MAX_SIZE];
-		int len = Udp.read(incomingPacket, UDP_TX_PACKET_MAX_SIZE);
+		char incomingPacket[2048];
+		int len = Udp.read(incomingPacket, 2048);
 		if (len > 0)
 		{
 			incomingPacket[len] = 0;
