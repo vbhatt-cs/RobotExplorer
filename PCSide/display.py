@@ -9,4 +9,5 @@ def display():
     plt.gray()
     plt.draw()
     plt.pause(0.0001)
+    plt.savefig('map.png')
     return

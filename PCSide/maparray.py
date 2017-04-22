@@ -1,7 +1,7 @@
 import numpy as np
 
 MAP_SIZE = 10
-CELL_DIS = 50   # Encoder counts required to move one cell
+CELL_DIS = 25   # Encoder counts required to move one cell
 
 """ Map:
     0 (black) => Wall

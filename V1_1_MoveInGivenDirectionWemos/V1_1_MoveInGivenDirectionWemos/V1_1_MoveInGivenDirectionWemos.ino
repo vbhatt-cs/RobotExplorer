@@ -53,6 +53,7 @@ int curDistance = 0;
 bool runMotor = true;
 bool rotateMotor = true;
 bool wall = false;
+bool startFlag = true;
 
 FaBo9Axis fabo_9axis;	// For MPU9250 readings
 float q[4] = { 1.0f, 0.0f, 0.0f, 0.0f };    // vector to hold quaternion
@@ -61,14 +62,16 @@ float deltat = 0.0f;						// integration interval for both filter schemes
 uint32_t lastUpdate = 0;	// used to calculate integration interval
 uint32_t Now = 0;							// used to calculate integration interval
 uint32_t startTime = 0;
-float magBias[3] = { 10.285, 84.989, -26.44 };
-float magScale[3] = { 42.575, 41.895, 35.17 };
+float magBias[3] = { 7.49, 3.28, -18.94};
+float magScale[3] = { 39.96, 41.53, 33.60};
+int MPU_READING_TIME = 20;
+int curReadingTime = 0;
 
 //Setup PID
 PID wheelControl(&curDirection, &output, &setDirection, kp, ki, kd, DIRECT);
 
 //SSID of access point
-const char *SSID = "vg";
+const char *SSID = "Wemos";
 const char *password = "qwer321!";
 
 //UDP stuff
@@ -102,20 +105,20 @@ void setup() {
 		Serial.print("Configuring access point...");
 	}
 
-	//WiFi.softAP(SSID);
-	WiFi.begin(SSID, password);
-	//WiFi.config(ip, gateway, subnet);
+	WiFi.softAP(SSID);
+	/*WiFi.begin(SSID, password);
+	WiFi.config(ip, gateway, subnet);
 
 	while (WiFi.status() != WL_CONNECTED) {
 		delay(500);
 		if (DEBUG_SERIAL)
 			Serial.print(".");
-	}
+	}*/
 
 	Udp.begin(localUdpPort);
 
 	if (DEBUG_SERIAL)
-		Serial.printf("Now listening at IP %s, UDP port %d\n", WiFi.localIP().toString().c_str(), localUdpPort);
+		Serial.printf("Now listening at IP %s, UDP port %d\n", WiFi.softAPIP().toString().c_str(), localUdpPort);
     
 	//Stop the motor initially
 	digitalWrite(LDIR1, LOW);
@@ -138,15 +141,20 @@ void setup() {
 void loop() {
 	handleUDP();	//Handle UDP messages
 
-	Now = micros();
-	deltat = ((Now - lastUpdate) / 1000000.0f); // set integration time by time elapsed since last filter update
-	lastUpdate = Now;
-
 	//Read MPU9250 and get compass heading
-	curDirection = getYaw();
-	if (curDirection < -170)
-		curDirection = abs(curDirection);
-
+    //if(curReadingTime == MPU_READING_TIME)
+    //{
+        Now = micros();
+        deltat = ((Now - lastUpdate) / 1000000.0f); // set integration time by time elapsed since last filter update
+        lastUpdate = Now;
+	    curDirection = getYaw();
+        curReadingTime = 0;
+        if (curDirection < -170)
+            curDirection = abs(curDirection);
+    //}
+    //else
+        //curReadingTime++;
+ 
 	runMotor = curDistance < setDistance;
 
 	if (rotateMotor)
@@ -185,23 +193,23 @@ void loop() {
 			analogWrite(RPWM, 0);
 			analogWrite(LPWM, 0);
 		}
-		else if ((abs(setDirection - curDirection) > 10 && abs(setDirection - curDirection) < 350) && rotateMotor)
+		else if ((abs(setDirection - curDirection) > 5 && abs(setDirection - curDirection) < 355) && rotateMotor)
 		{
 			if (setDirection - curDirection > 0 && setDirection - curDirection < 180)
 			{
-				digitalWrite(RDIR1, LOW);
-				digitalWrite(RDIR2, HIGH);
-				digitalWrite(LDIR1, LOW);
-				digitalWrite(LDIR2, HIGH);
+				digitalWrite(RDIR2, LOW);
+				digitalWrite(RDIR1, HIGH);
+				digitalWrite(LDIR2, LOW);
+				digitalWrite(LDIR1, HIGH);
 				analogWrite(RPWM, RIGHT_SS_SPEED);
 				analogWrite(LPWM, LEFT_SS_SPEED);
 			}
 			else
 			{
-				digitalWrite(LDIR2, LOW);
-				digitalWrite(LDIR1, HIGH);
-				digitalWrite(RDIR2, LOW);
-				digitalWrite(RDIR1, HIGH);
+				digitalWrite(LDIR1, LOW);
+				digitalWrite(LDIR2, HIGH);
+				digitalWrite(RDIR1, LOW);
+				digitalWrite(RDIR2, HIGH);
 				analogWrite(RPWM, RIGHT_SS_SPEED);
 				analogWrite(LPWM, LEFT_SS_SPEED);
 			}
@@ -209,10 +217,10 @@ void loop() {
 		else
 		{
 			rotateMotor = false;
-			digitalWrite(LDIR2, LOW);
-			digitalWrite(LDIR1, HIGH);
-			digitalWrite(RDIR1, LOW);
-			digitalWrite(RDIR2, HIGH);
+			digitalWrite(LDIR1, LOW);
+			digitalWrite(LDIR2, HIGH);
+			digitalWrite(RDIR2, LOW);
+			digitalWrite(RDIR1, HIGH);
 			analogWrite(RPWM, rightSpeed);
 			analogWrite(LPWM, leftSpeed);
 		}
@@ -227,7 +235,20 @@ void loop() {
 		analogWrite(LPWM, 0);
 	}
 
-	delay(200);
+	myDelay(200);
+}
+
+void myDelay(int ms) {
+    while(ms--) {
+        if((!runMotor || wall) && !startFlag)
+            return;
+        runMotor = curDistance < setDistance;
+        if (rotateMotor)
+            wall = false;
+        else
+            wall = analogRead(PROXIMITY) < 512;
+        delay(1);
+    }
 }
 
 //Handle UDP request
@@ -272,6 +293,8 @@ void handleUDP() {
 
 			if (setDistance > 0)
 				curDistance = 0;
+
+            startFlag = false;
 
 			rotateMotor = true;
 

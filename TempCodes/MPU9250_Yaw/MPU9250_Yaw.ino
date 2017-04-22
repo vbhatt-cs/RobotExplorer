@@ -8,8 +8,8 @@ float eInt[3] = { 0.0f, 0.0f, 0.0f };       // vector to hold integral error for
     uint32_t lastUpdate = 0, firstUpdate = 0; // used to calculate integration interval
 uint32_t Now = 0;        // used to calculate integration interval
 
-float magCalibration[3] = {58.54, 63.3, 24.96};
-float magBias[3] = {22.1,63.3,-8.2};
+float magCalibration[3] = { 39.87, 40.255, 32.465};
+float magBias[3] = { -18.94, 132.785, -14.315};
     
     // these are the free parameters in the Mahony filter and fusion scheme, Kp for proportional feedback, Ki for integral
     const float Kp= 5.0f; 
@@ -19,7 +19,7 @@ void setup() {
   // put your setup code here, to run once:
     Serial.begin(9600);
     fabo_9axis.begin();
-    //magCal();
+    magCal();
 }
 
 void loop() {
@@ -230,10 +230,7 @@ void magCal()
 
         delay(200);
     }
-
-    Serial.print("X"); Serial.print(maxX); Serial.print(" "); Serial.println(minX);
-    Serial.print("Y"); Serial.print(maxY); Serial.print(" "); Serial.println(minY);
-    Serial.print("Z"); Serial.print(maxZ); Serial.print(" "); Serial.println(minZ);
+    
     magBias[0] = (maxX + minX)/2;
     magBias[1] = (maxY + minY)/2;
     magBias[2] = (maxZ + minZ)/2;
@@ -241,5 +238,8 @@ void magCal()
     magCalibration[0] = (maxX - minX)/2;
     magCalibration[1] = (maxY - minY)/2;
     magCalibration[2] = (maxZ - minZ)/2;
+
+    Serial.print("Bias"); Serial.print(magBias[0]); Serial.print(", "); Serial.print(magBias[1]); Serial.print(", "); Serial.println(magBias[2]);
+    Serial.print("Cal"); Serial.print(magCalibration[0]); Serial.print(", "); Serial.print(magCalibration[1]); Serial.print(", "); Serial.println(magCalibration[2]);
 }
 

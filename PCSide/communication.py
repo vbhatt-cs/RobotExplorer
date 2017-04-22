@@ -1,7 +1,7 @@
 from socket import *
 from parse import *
 
-address = ('192.168.137.149', 4210)  # IP, port of arduino
+address = ('192.168.4.1', 4210)  # IP, port of arduino
 client_socket = socket(AF_INET, SOCK_DGRAM)  # Set up the socket for UDP
 
 
@@ -11,7 +11,7 @@ def init():
     global client_socket
 
     client_socket = socket(AF_INET, SOCK_DGRAM)  # Set up the socket for UDP
-    client_socket.settimeout(5)  # Timeout = 1s
+    client_socket.settimeout(5)  # Timeout = 5s
 
 
 def getSensors():
