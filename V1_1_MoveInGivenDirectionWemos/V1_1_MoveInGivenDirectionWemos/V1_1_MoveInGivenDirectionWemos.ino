@@ -64,8 +64,6 @@ uint32_t Now = 0;							// used to calculate integration interval
 uint32_t startTime = 0;
 float magBias[3] = { 7.49, 3.28, -18.94};
 float magScale[3] = { 39.96, 41.53, 33.60};
-int MPU_READING_TIME = 20;
-int curReadingTime = 0;
 
 //Setup PID
 PID wheelControl(&curDirection, &output, &setDirection, kp, ki, kd, DIRECT);
@@ -142,18 +140,13 @@ void loop() {
 	handleUDP();	//Handle UDP messages
 
 	//Read MPU9250 and get compass heading
-    //if(curReadingTime == MPU_READING_TIME)
-    //{
-        Now = micros();
-        deltat = ((Now - lastUpdate) / 1000000.0f); // set integration time by time elapsed since last filter update
-        lastUpdate = Now;
-	    curDirection = getYaw();
-        curReadingTime = 0;
-        if (curDirection < -170)
-            curDirection = abs(curDirection);
-    //}
-    //else
-        //curReadingTime++;
+	Now = micros();
+	deltat = ((Now - lastUpdate) / 1000000.0f); // set integration time by time elapsed since last filter update
+	lastUpdate = Now;
+	
+	curDirection = getYaw();
+	if (curDirection < -170)
+		curDirection = abs(curDirection);
  
 	runMotor = curDistance < setDistance;
 
