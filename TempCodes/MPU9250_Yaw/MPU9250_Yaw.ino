@@ -240,6 +240,6 @@ void magCal()
     magCalibration[2] = (maxZ - minZ)/2;
 
     Serial.print("Bias"); Serial.print(magBias[0]); Serial.print(", "); Serial.print(magBias[1]); Serial.print(", "); Serial.println(magBias[2]);
-    Serial.print("Cal"); Serial.print(magCalibration[0]); Serial.print(", "); Serial.print(magCalibration[1]); Serial.print(", "); Serial.println(magCalibration[2]);
+    Serial.print("Scale"); Serial.print(magCalibration[0]); Serial.print(", "); Serial.print(magCalibration[1]); Serial.print(", "); Serial.println(magCalibration[2]);
 }
 
