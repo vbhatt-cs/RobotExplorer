@@ -22,4 +22,4 @@ while not exploration.finished():
         nextDis, nextDir = exploration.explore()  # Continue exploration
         communication.sendData(nextDis, nextDir)  # Send command to bot
     display.display()  # Display map
-    time.sleep(1)
+    time.sleep(5)

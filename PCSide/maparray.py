@@ -1,6 +1,6 @@
 import numpy as np
 
-MAP_SIZE = 10
+MAP_SIZE = 20
 CELL_DIS = 25   # Encoder counts required to move one cell
 
 """ Map:

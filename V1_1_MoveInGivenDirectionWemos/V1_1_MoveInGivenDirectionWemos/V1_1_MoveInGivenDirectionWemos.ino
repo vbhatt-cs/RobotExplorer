@@ -288,6 +288,7 @@ void handleUDP() {
 			dir = req.substring(0, req.indexOf(' '));
 			dis = req.substring(req.indexOf(' ') + 1);
 
+			float setDirOld = setDirection;
 			setDirection = dir.toFloat();
 			setDistance = dis.toInt();
 
@@ -296,7 +297,8 @@ void handleUDP() {
 
             startFlag = false;
 
-			rotateMotor = true;
+			if(setDirection != setDirOld)
+				rotateMotor = true;
 
 			if (DEBUG_SERIAL)
 			{
