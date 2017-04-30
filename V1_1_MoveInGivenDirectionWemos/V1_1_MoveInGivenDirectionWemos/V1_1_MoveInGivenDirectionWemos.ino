@@ -147,7 +147,7 @@ void loop() {
 	curDirection = getYaw();
 	if (curDirection < -170)
 		curDirection = abs(curDirection);
- 
+
 	runMotor = curDistance < setDistance;
 
 	if (rotateMotor)
@@ -186,6 +186,7 @@ void loop() {
 			analogWrite(RPWM, 0);
 			analogWrite(LPWM, 0);
 		}
+
 		else if ((abs(setDirection - curDirection) > 5 && abs(setDirection - curDirection) < 355) && rotateMotor)
 		{
 			if (setDirection - curDirection > 0 && setDirection - curDirection < 180)
