@@ -1,4 +1,5 @@
 import maparray
+import numpy as np
 
 
 def init():
@@ -36,7 +37,7 @@ def explore():
 
 def finished():
     """ Returns whether everything that can be explored has been explored"""
-    return not maparray.explorationStack
+    return not (maparray.explorationStack or np.count_nonzero(maparray.mapArray == 0.5))
 
 
 def unexpNeighbor(px, py):

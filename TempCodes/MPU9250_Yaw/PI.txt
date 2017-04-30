@@ -1,0 +1,4 @@
+Ku = 10
+Kp = 4
+Tu = 0.2
+Ki = 0.16 -> 0.1 to reduce osc
