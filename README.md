@@ -59,13 +59,21 @@ Now, connect to WeMos wifi network from your PC and run the [main python script]
 
 ## Known issues
 
-1. There are oscillations when the bot rotates in place. This can be solved by turning the bot slowly so that there is no overshoot.
+1. WeMos doesn't reset when it is connected to the encoder (through D3 pin). A temporary fix is to remove the connection, reset the board and connect the encoder afterwards.
 
-2. The bot can deviate from its path due to incorrect rotation/movement.
+2. Connection between PC and bot times out sometimes. The timeout is extremely rare when the battery is fully charged and there are no other strong WiFi networks in the surrounding. Other observations were - 
+    * Timeouts are less frequent when the delay between two consecutive requests by the PC is high
+    * More timeouts when an UDP packet reaches arduino while the motor is moving
+    * No timeouts when only UDP communication is taking place (no sensors/motor)
+    * No timeouts when encoder is removed (not fully tested - might just be coincidence)
 
-3. If the bot deviates a bit and wrongly detects a wall (physically) in the cell (of the map) which it had previously detected as open, then the bot gets stuck there and the mapping doesn't continue.
+3. There are oscillations when the bot rotates in place. This can be solved by turning the bot slowly so that there is no overshoot.
 
-4. If the proximity sensor fails to detect a wall (due to not being in the line of sight) and the bot crashes into it, it can't recover and continue mapping.
+4. The bot can deviate from its path due to incorrect rotation/movement.
+
+5. If the bot deviates a bit and wrongly detects a wall (physically) in the cell (of the map) which it had previously detected as open, then the bot gets stuck there and the mapping doesn't continue.
+
+6. If the proximity sensor fails to detect a wall (due to not being in the line of sight) and the bot crashes into it, it can't recover and continue mapping.
 
 ## Future work
 
